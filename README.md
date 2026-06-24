@@ -8,7 +8,7 @@
 
 ## 🌐 Live app
 
-**→ https://sessionscope.pages.dev** *(deploy in progress — see [Deploy](#deploy-your-own) below)*
+**→ **https://everettvt.github.io/sessionscope/**
 
 ---
 
@@ -42,7 +42,7 @@ Chat exports (ChatGPT, Anthropic) have no tool/git data, so flow/ship degrades t
 ## Quick start — three ways
 
 ### 1. Use the hosted app
-Visit **[sessionscope.pages.dev](https://sessionscope.pages.dev)**, click **⌖ Find my sessions**, grant a folder (your home, or `~/.codex` / `~/.claude`). The scanner walks the tree and flags candidates — you never pick files by hand.
+Visit **[everettvt.github.io/sessionscope](https://everettvt.github.io/sessionscope/)**, click **⌖ Find my sessions**, grant a folder (your home, or `~/.codex` / `~/.claude`). The scanner walks the tree and flags candidates — you never pick files by hand.
 
 ### 2. Local indexer (zero clicks)
 For the fastest path on your own machine — no folder picker, no browser permission:

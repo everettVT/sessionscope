@@ -8,7 +8,7 @@
 
 ## 🌐 Live app
 
-**→ **https://everettvt.github.io/sessionscope/**
+### **→ [everettvt.github.io/sessionscope](https://everettvt.github.io/sessionscope/)**
 
 ---
 

@@ -316,7 +316,7 @@ $("legend").innerHTML = STAGEORDER.map(k=>
 
 // ---------- insights ----------
 const did = phases.map(p=>({...p, did:p.merged+p.shipped+p.committed}));
-const top = [...did].sort((a,b)=>b.did-a.did)[0];
+const topPhase = [...did].sort((a,b)=>b.did-a.did)[0];
 const merges = stageCounts.merged||0;
 const realMerges = mergeRows.length;
 let line='';
@@ -327,8 +327,8 @@ if(realMerges>0){
 } else {
   line = `No merges detected from session bash logs. ${stageCounts.committed+stageCounts.shipped} session${(stageCounts.committed+stageCounts.shipped)===1?'':'s'} committed. Run <span class="mono">node scope.js --git-merge</span> to scan your repos for which commits actually merged.`;
 }
-const phLine = top && top.did>0
-  ? `<br>Your shipping leans toward <b style="color:#7b6cff">${top.emoji} ${top.name}</b> — ${top.did} shipping session${top.did>1?'s':''} in that phase.`
+const phLine = topPhase && topPhase.did>0
+  ? `<br>Your shipping leans toward <b style="color:#7b6cff">${topPhase.emoji} ${topPhase.name}</b> — ${topPhase.did} shipping session${topPhase.did>1?'s':''} in that phase.`
   : '';
 $("insights").innerHTML = line + phLine;
 

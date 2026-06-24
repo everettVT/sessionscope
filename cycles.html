@@ -1,0 +1,389 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cycles — Sessionscope</title>
+<style>
+  :root{--bg:#06080d;--ink:#e8edf6;--dim:#8a93a6;--line:#18202e;--panel:#0b0f17}
+  *{box-sizing:border-box}
+  html,body{margin:0;min-height:100%;color:var(--ink);
+    background:radial-gradient(1100px 720px at 50% 22%,#100b1c,#04060a 72%);
+    font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  .mono{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace}
+  .wrap{max-width:1020px;margin:0 auto;padding:28px 30px 50px}
+  .links{position:absolute;right:30px;top:24px;font-size:11.5px}
+  .links a{color:#9fb0ff;text-decoration:none;border-bottom:1px solid rgba(159,176,255,.3);margin-left:13px}
+  header .eyebrow{font-family:ui-monospace,Menlo,monospace;font-size:11px;letter-spacing:.32em;text-transform:uppercase;color:var(--dim)}
+  header h1{margin:.28em 0 .12em;font-size:32px;font-weight:650;letter-spacing:-.015em}
+  header h1 b{background:linear-gradient(90deg,#9b8bff 10%,#54e07a 75%);-webkit-background-clip:text;background-clip:text;color:transparent}
+  header .sub{color:var(--dim);font-size:13.5px;line-height:1.55;max-width:760px}
+  header .sub em{color:#c3ccda;font-style:normal}
+
+  .hero{display:grid;grid-template-columns:1fr 1.35fr;gap:14px;margin-top:18px}
+  .hcard{background:rgba(10,14,21,.55);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+  .hcard .lab{font-family:ui-monospace,Menlo,monospace;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);margin-bottom:8px}
+  .moonbig{display:flex;align-items:center;gap:14px}
+  .moonbig .em{font-size:44px;line-height:1}
+  .moonbig .v .n{font-size:18px;font-weight:650}
+  .moonbig .v .m{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:var(--dim);margin-top:4px;line-height:1.5}
+  .loc{display:flex;align-items:center;gap:8px;font-size:14px;flex-wrap:wrap}
+  .loc input{background:transparent;border:none;color:var(--ink);font-size:14px;font-weight:650;width:120px;outline:none;border-bottom:1px dashed #2b3a55;padding:1px 2px}
+  .loc input:focus{border-color:#54e07a}
+  .loc .wx{color:var(--dim);font-family:ui-monospace,Menlo,monospace;font-size:11.5px}
+  .funnel{display:flex;gap:6px;margin-top:11px;align-items:stretch;font-family:ui-monospace,Menlo,monospace;font-size:11px}
+  .funnel .seg{flex:1 1 0;padding:7px 9px;border-radius:7px;border:1px solid var(--line);display:flex;flex-direction:column;gap:2px;min-width:0;background:rgba(255,255,255,.012)}
+  .funnel .seg b{font-size:14px;color:#dfe6f0;font-weight:650}
+  .funnel .seg .l{font-size:9px;letter-spacing:.14em;text-transform:uppercase;opacity:.85}
+  .funnel .seg .pct{color:var(--dim);font-weight:400;font-size:10.5px}
+
+  .stage{margin-top:20px;background:rgba(10,14,21,.5);border:1px solid var(--line);border-radius:18px;
+    padding:18px;display:grid;grid-template-columns:520px 1fr;gap:18px;align-items:start}
+  .stagewrap{position:relative;display:flex;justify-content:center}
+  #dial{display:block}
+  #legend{display:flex;flex-wrap:wrap;gap:10px;font-size:11.5px;color:var(--dim);margin-top:10px}
+  #legend span{display:inline-flex;align-items:center;gap:6px}
+  #legend i{width:10px;height:10px;border-radius:3px}
+  .stageRight .ttl{font-size:14px;font-weight:650;margin-bottom:6px}
+  .stageRight .desc{font-size:12.5px;color:var(--dim);line-height:1.55}
+  .stageRight .desc b{font-weight:600}
+  #insights{margin-top:14px;font-size:12.5px;color:#c3ccda;line-height:1.55;
+    background:rgba(123,108,255,.05);border:1px solid rgba(123,108,255,.18);border-radius:10px;padding:10px 12px}
+
+  h2.sec{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--dim);font-weight:600;margin:26px 0 10px}
+  .phases{display:grid;grid-template-columns:repeat(8,1fr);gap:8px}
+  .phase{background:rgba(10,14,21,.5);border:1px solid var(--line);border-radius:11px;padding:10px;text-align:center;transition:border-color .12s,background .12s}
+  .phase.peak{border-color:rgba(123,108,255,.55);background:rgba(123,108,255,.07);box-shadow:0 0 16px rgba(123,108,255,.12) inset}
+  .phase .em{font-size:24px;line-height:1.05}
+  .phase .nm{font-size:10px;color:var(--dim);margin:3px 0 5px;letter-spacing:.04em;line-height:1.25;min-height:24px}
+  .phase .ct{font-family:ui-monospace,Menlo,monospace;font-size:16px;font-weight:650}
+  .phase .br{font-family:ui-monospace,Menlo,monospace;font-size:9.5px;color:var(--dim);margin-top:3px}
+  .phase .br b{color:#7b6cff;font-weight:600}
+
+  .rows{display:flex;flex-direction:column;gap:6px}
+  .row{display:grid;grid-template-columns:34px 96px 1fr 86px 120px 70px;gap:10px;
+    font-family:ui-monospace,Menlo,monospace;font-size:11.5px;align-items:center;
+    background:rgba(10,14,21,.4);border:1px solid var(--line);border-radius:9px;padding:7px 12px}
+  .row .em{font-size:18px;text-align:center}
+  .row .when{color:var(--dim);font-size:11px}
+  .row .title{color:#dfe6f0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .row .title .br{color:var(--dim);margin-right:6px}
+  .row .stg{font-size:10px;letter-spacing:.09em;text-transform:uppercase;padding:3px 8px;border-radius:5px;text-align:center;font-weight:650}
+  .row .wx{color:var(--dim);font-size:11px}
+  .row .t{color:#aeb8c8;text-align:right;font-size:11px}
+  .empty{color:var(--dim);font-size:13px;padding:14px;text-align:center;background:rgba(10,14,21,.4);border:1px dashed var(--line);border-radius:10px}
+
+  .foot{margin-top:22px;border-top:1px solid var(--line);padding-top:14px;font-size:12px;color:var(--dim);line-height:1.6;max-width:880px}
+  .foot b{color:#c3ccda;font-weight:600}
+  .foot .mono{color:#aeb8c8}
+
+  @media (max-width:780px){
+    .hero{grid-template-columns:1fr}
+    .stage{grid-template-columns:1fr}
+    .stagewrap{justify-content:flex-start}
+    .phases{grid-template-columns:repeat(4,1fr)}
+    .row{grid-template-columns:30px 80px 1fr 80px;gap:8px}
+    .row .wx,.row .t{display:none}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="links">
+    <a href="index.html">↑ upload</a>
+    <a href="sessions.html">→ sessions</a>
+    <a href="flow.html">→ flow &amp; ship</a>
+  </div>
+  <header>
+    <div class="eyebrow" id="eyebrow">Archetype · cycles</div>
+    <h1>Moon &amp; <b>Merges</b></h1>
+    <div class="sub">Your work, plotted against <em>lunar phases</em> and (when scope.js has it) <em>weather</em>.
+      Track when commits actually become <em>merges</em> — and whether the cycle matters.</div>
+  </header>
+
+  <div class="hero">
+    <div class="hcard">
+      <div class="lab">tonight's sky</div>
+      <div class="moonbig" id="moonNow"></div>
+    </div>
+    <div class="hcard">
+      <div class="lab">your context</div>
+      <div class="loc">
+        <span style="color:var(--dim)">at</span>
+        <input id="loc" value="BSOTA" maxlength="32" spellcheck="false" aria-label="location">
+        <span class="wx" id="locWx"></span>
+      </div>
+      <div class="funnel" id="funnel"></div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="stagewrap"><canvas id="dial" width="500" height="500"></canvas></div>
+    <div class="stageRight">
+      <div class="ttl">Lunar dial</div>
+      <div class="desc">Each dot is a session, placed by the moon's phase when you started it.
+        <b style="color:#7b6cff">Purple</b> = merged. <b style="color:#54e07a">Green</b> = pushed or PR-opened.
+        <b style="color:#00e0c6">Teal</b> = local-only commit. <b style="color:#ffb000">Amber</b> = built, never committed.
+        <b style="color:#6f7a8c">Grey</b> = read-only. Dot size scales with turn count.</div>
+      <div id="legend"></div>
+      <div id="insights"></div>
+    </div>
+  </div>
+
+  <h2 class="sec">By lunar phase</h2>
+  <div class="phases" id="phases"></div>
+
+  <h2 class="sec">Most recent committing sessions</h2>
+  <div class="rows" id="rows"></div>
+
+  <div class="foot" id="foot"></div>
+</div>
+
+<script src="scope_data.js" onerror="void 0"></script>
+<script src="parsers.js"></script>
+<script>
+(function(){
+  try{
+    var sr=sessionStorage.getItem('ARCHE_SESSIONS');
+    var cr=sessionStorage.getItem('ARCHE_CYCLES');
+    if(sr){
+      var o=JSON.parse(sr); window.SESSIONS=o.SESSIONS; window.SMETA=o.SMETA;
+      window.CYCLES = cr ? JSON.parse(cr) : null;
+      // MERGES/WEATHER never come via sessionStorage — only via scope_data.js. That's intentional.
+      window.MERGES = (window.SCOPE&&window.SCOPE.MERGES)||null;
+      window.WEATHER = (window.SCOPE&&window.SCOPE.WEATHER)||null;
+    } else if(window.SCOPE){
+      window.SESSIONS=window.SCOPE.SESSIONS; window.SMETA=window.SCOPE.SMETA;
+      window.CYCLES=window.SCOPE.CYCLES||null;
+      window.MERGES=window.SCOPE.MERGES||null;
+      window.WEATHER=window.SCOPE.WEATHER||null;
+    } else { location.replace('index.html'); return; }
+  }catch(e){ location.replace('index.html'); }
+})();
+</script>
+<script>
+const PHASE_NAMES=["New Moon","Waxing Crescent","First Quarter","Waxing Gibbous","Full Moon","Waning Gibbous","Last Quarter","Waning Crescent"];
+const PHASE_EMOJI=["🌑","🌒","🌓","🌔","🌕","🌖","🌗","🌘"];
+const STAGECOLOR={merged:"#7b6cff",shipped:"#54e07a",committed:"#00e0c6",built:"#ffb000",explored:"#6f7a8c"};
+const STAGEORDER=["merged","shipped","committed","built","explored"];
+const moonPhase = window.SessionParsers.moonPhase;
+const $=id=>document.getElementById(id);
+const esc=s=>(s==null?'':String(s)).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
+
+// ---------- today's moon ----------
+const today = moonPhase(new Date());
+$("moonNow").innerHTML = `<div class="em">${today.emoji}</div>
+  <div class="v"><div class="n">${today.name}</div>
+    <div class="m">${Math.round(today.illum*100)}% illuminated<br>day ${today.age.toFixed(1)} of 29.53</div></div>`;
+
+// ---------- location (persists in localStorage) ----------
+try{ const saved=localStorage.getItem('SS_LOC'); if(saved) $("loc").value=saved; }catch(_){}
+$("loc").addEventListener('input', e=>{ try{ localStorage.setItem('SS_LOC', e.target.value); }catch(_){} });
+
+// ---------- weather chip (only if scope.js baked it in) ----------
+const wx = window.WEATHER;
+if(wx && wx.now){
+  $("locWx").textContent = `· ${Math.round(wx.now.tempC)}°C · ${wx.now.code}${wx.location?` · ${wx.location}`:''}`;
+} else {
+  $("locWx").innerHTML = `<span style="opacity:.7">· weather off — run <span class="mono" style="color:#9fb0ff">scope.js --weather</span> to enable</span>`;
+}
+
+// ---------- aggregate from SESSIONS ----------
+const items = [];
+for(const s of (window.SESSIONS||[])){
+  if(!s.start) continue;
+  const m = s.moon || moonPhase(s.start);
+  if(!m) continue;
+  const st = s.stage || (s.gitm>0?'merged':(s.gitp||s.gitpr)?'shipped':s.gitc?'committed':'explored');
+  items.push(Object.assign({}, s, {_moon:m, _stage:st}));
+}
+items.sort((a,b)=>(b.start||'').localeCompare(a.start||''));
+
+const phases = Array.from({length:8},(_,i)=>({i,name:PHASE_NAMES[i],emoji:PHASE_EMOJI[i],
+  sessions:0,merged:0,shipped:0,committed:0,built:0,explored:0,turns:0}));
+for(const s of items){
+  const p = phases[s._moon.idx];
+  p.sessions++; if(p[s._stage]!=null) p[s._stage]++;
+  p.turns += (s.turns||[]).length;
+}
+
+const stageCounts={merged:0,shipped:0,committed:0,built:0,explored:0};
+for(const s of items) if(stageCounts[s._stage]!=null) stageCounts[s._stage]++;
+
+// Merge any scope.js git-scan merges into the per-phase tallies (each row = a real merge commit on main).
+const mergeRows = Array.isArray(window.MERGES) ? window.MERGES : [];
+if(mergeRows.length){
+  for(const m of mergeRows){
+    const phase = moonPhase(m.date); if(!phase) continue;
+    // we don't double-count into stageCounts (sessions already drove that); we add to phases.merged
+    phases[phase.idx].merged++;
+  }
+}
+
+// ---------- stage funnel ----------
+const totalSessions = items.length || 1;
+$("funnel").innerHTML = STAGEORDER.map(k=>{
+  const c=stageCounts[k]||0; const pct = Math.round(c/totalSessions*100);
+  return `<div class="seg" style="border-color:${STAGECOLOR[k]}66;color:${STAGECOLOR[k]}">
+    <span class="l">${k}</span>
+    <span><b>${c}</b> <span class="pct">${pct}%</span></span></div>`;
+}).join("");
+
+// ---------- lunar dial ----------
+const cv=$("dial"), x=cv.getContext('2d');
+const DPR=Math.min(2,devicePixelRatio||1), W=500;
+cv.width=W*DPR; cv.height=W*DPR; cv.style.width=W+'px'; cv.style.height=W+'px'; x.scale(DPR,DPR);
+const CX=W/2, CY=W/2, R0=128, R1=218;
+const ang=ph=>(-90 + ph*360)*Math.PI/180;
+const pt =(ph,r)=>[CX+Math.cos(ang(ph))*r, CY+Math.sin(ang(ph))*r];
+
+function dial(){
+  x.clearRect(0,0,W,W);
+  // soft glow center
+  const grad = x.createRadialGradient(CX,CY,30,CX,CY,R1);
+  grad.addColorStop(0,'rgba(123,108,255,.10)'); grad.addColorStop(.6,'rgba(123,108,255,.02)'); grad.addColorStop(1,'rgba(0,0,0,0)');
+  x.fillStyle=grad; x.beginPath(); x.arc(CX,CY,R1,0,7); x.fill();
+  // base rings
+  x.strokeStyle='rgba(255,255,255,.06)'; x.lineWidth=1;
+  x.beginPath(); x.arc(CX,CY,R0,0,7); x.stroke();
+  x.beginPath(); x.arc(CX,CY,R1,0,7); x.stroke();
+  // phase spokes + emoji
+  for(let i=0;i<8;i++){
+    const ph=i/8;
+    const [ix,iy]=pt(ph,R0), [ox,oy]=pt(ph,R1);
+    x.strokeStyle='rgba(255,255,255,.09)';
+    x.beginPath(); x.moveTo(ix,iy); x.lineTo(ox,oy); x.stroke();
+    const [ex,ey]=pt(ph, R1+26);
+    x.font='22px ui-sans-serif,"Apple Color Emoji","Segoe UI Emoji"';
+    x.textAlign='center'; x.textBaseline='middle';
+    x.fillText(PHASE_EMOJI[i], ex, ey);
+    // tiny phase label inside
+    x.font='600 9px ui-monospace,Menlo,monospace';
+    x.fillStyle='rgba(170,184,200,.45)';
+    const short = ["new","wax cre","1st Q","wax gib","full","wan gib","last Q","wan cre"][i];
+    const [lx,ly]=pt(ph+1/16, R0-10);
+    x.fillText(short, lx, ly);
+  }
+  // session dots, jittered radially so they don't pile on one ring
+  const maxT = Math.max(1, ...items.map(s=>(s.turns||[]).length));
+  const buckets = Array.from({length:90},()=>[]);
+  for(const s of items){
+    const b = Math.floor(s._moon.phase*90); buckets[b].push(s);
+  }
+  buckets.forEach((B,bi)=>{
+    B.forEach((s,si)=>{
+      const turns=(s.turns||[]).length;
+      const r0 = R0 + 14 + (si%6)*((R1-R0-28)/6) + ((bi%2)*3);
+      const [px,py] = pt(s._moon.phase, r0);
+      const sz = 4 + Math.sqrt(turns/maxT)*8;
+      x.fillStyle = STAGECOLOR[s._stage];
+      x.globalAlpha = s._stage==='explored' ? 0.5 : 0.88;
+      x.beginPath(); x.arc(px,py,sz,0,7); x.fill();
+      if(s._stage==='merged'){
+        x.globalAlpha=0.55; x.strokeStyle='#fff'; x.lineWidth=1.2;
+        x.beginPath(); x.arc(px,py,sz+2,0,7); x.stroke();
+      }
+      x.globalAlpha=1;
+    });
+  });
+  // git-scan merge marks (small white ring on outer edge)
+  for(const m of mergeRows){
+    const ph = moonPhase(m.date); if(!ph) continue;
+    const [px,py]=pt(ph.phase, R1-6);
+    x.fillStyle='#fff'; x.globalAlpha=.95;
+    x.beginPath(); x.arc(px,py,2.5,0,7); x.fill();
+    x.globalAlpha=1;
+  }
+  // today marker
+  const [tx,ty]=pt(today.phase, R0-18);
+  const [tx2,ty2]=pt(today.phase, R1+12);
+  x.strokeStyle='rgba(255,255,255,.85)'; x.lineWidth=1.5;
+  x.setLineDash([4,3]); x.beginPath(); x.moveTo(tx,ty); x.lineTo(tx2,ty2); x.stroke(); x.setLineDash([]);
+  x.fillStyle='#fff'; x.font='600 9.5px ui-monospace,Menlo,monospace'; x.textAlign='center';
+  const [lx,ly]=pt(today.phase, R0-30);
+  x.fillText('today', lx, ly);
+  // center label
+  x.fillStyle='rgba(232,237,246,.85)'; x.font='600 24px ui-monospace,Menlo,monospace';
+  x.fillText(`${items.length}`, CX, CY-4);
+  x.fillStyle='rgba(170,184,200,.65)'; x.font='10px ui-monospace,Menlo,monospace';
+  x.fillText('sessions', CX, CY+16);
+}
+dial();
+
+// ---------- legend ----------
+$("legend").innerHTML = STAGEORDER.map(k=>
+  `<span><i style="background:${STAGECOLOR[k]}"></i>${k} <b style="color:#dfe6f0">${stageCounts[k]||0}</b></span>`).join("");
+
+// ---------- insights ----------
+const did = phases.map(p=>({...p, did:p.merged+p.shipped+p.committed}));
+const top = [...did].sort((a,b)=>b.did-a.did)[0];
+const merges = stageCounts.merged||0;
+const realMerges = mergeRows.length;
+let line='';
+if(realMerges>0){
+  line = `<b>${realMerges} real merge${realMerges>1?'s':''}</b> detected by <span class="mono">scope.js --git-merge</span> on your repos.`;
+} else if(merges>0){
+  line = `<b>${merges}</b> session${merges>1?'s':''} ran <span class="mono">gh pr merge</span> or <span class="mono">git merge</span> directly. For repo-wide merge truth, run <span class="mono">node scope.js --git-merge</span>.`;
+} else {
+  line = `No merges detected from session bash logs. ${stageCounts.committed+stageCounts.shipped} session${(stageCounts.committed+stageCounts.shipped)===1?'':'s'} committed. Run <span class="mono">node scope.js --git-merge</span> to scan your repos for which commits actually merged.`;
+}
+const phLine = top && top.did>0
+  ? `<br>Your shipping leans toward <b style="color:#7b6cff">${top.emoji} ${top.name}</b> — ${top.did} shipping session${top.did>1?'s':''} in that phase.`
+  : '';
+$("insights").innerHTML = line + phLine;
+
+// ---------- phase cards ----------
+const peak = [...phases].sort((a,b)=>(b.merged+b.shipped+b.committed)-(a.merged+a.shipped+a.committed))[0];
+$("phases").innerHTML = phases.map(p=>{
+  const ship = p.merged+p.shipped+p.committed;
+  const isPeak = peak===p && ship>0;
+  return `<div class="phase ${isPeak?'peak':''}" title="${p.name}: ${p.sessions} session(s), ${ship} shipping">
+    <div class="em">${p.emoji}</div>
+    <div class="nm">${p.name.replace(' ','<br>')}</div>
+    <div class="ct">${p.sessions}</div>
+    <div class="br">${p.merged?`<b>${p.merged}</b>m · `:''}${(p.shipped+p.committed)?`${p.shipped+p.committed} sh`:'<span style="opacity:.45">no ships</span>'}</div>
+  </div>`;
+}).join("");
+
+// ---------- recent shipped rows ----------
+function fmtWhen(iso){ const d=new Date(iso); if(isNaN(d))return ''; return d.toLocaleString([],{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}); }
+function wxFor(iso){
+  if(!wx || !wx.daily) return '';
+  const day = String(iso).slice(0,10);
+  const e = wx.daily[day];
+  return e ? `${Math.round(e.tempC)}°C ${e.code}` : '';
+}
+const shipped = items.filter(s=>['merged','shipped','committed'].includes(s._stage)).slice(0,25);
+$("rows").innerHTML = shipped.length ? shipped.map(s=>{
+  const m=s._moon, stg=s._stage, wstr=wxFor(s.start);
+  const marks = (s.gitm?`⚑${s.gitm} `:'')+(s.gitp?`↑${s.gitp} `:'')+(s.gitpr?`◐${s.gitpr} `:'')+(s.gitc?`●${s.gitc}`:'');
+  return `<div class="row">
+    <span class="em" title="${m.name} · ${Math.round(m.illum*100)}% illum">${m.emoji}</span>
+    <span class="when">${fmtWhen(s.start)}</span>
+    <span class="title"><span class="br">${esc(s.branch||s.ws)}</span>${esc(s.title)}</span>
+    <span class="stg" style="background:${STAGECOLOR[stg]}22;color:${STAGECOLOR[stg]}">${stg}</span>
+    <span class="wx">${wstr||'<span style="opacity:.4">—</span>'}</span>
+    <span class="t">${marks||'<span style="opacity:.4">·</span>'}</span>
+  </div>`;
+}).join("") : `<div class="empty">No committing sessions yet — drop more session files on the upload page, or run <span class="mono">node scope.js</span>.</div>`;
+
+// ---------- footer ----------
+$("foot").innerHTML = `
+  <div><b>How merge tracking works.</b> A session is labeled <b style="color:#7b6cff">merged</b> only if its bash log shows
+    <span class="mono">gh pr merge</span> or <span class="mono">git merge</span>; <b style="color:#54e07a">shipped</b> means
+    <span class="mono">git push</span> or <span class="mono">gh pr create</span> ran; <b style="color:#00e0c6">committed</b>
+    means <span class="mono">git commit</span> ran but you didn't push or PR from the session. For repo-wide truth
+    (which session's commits actually landed in main), run <span class="mono">node scope.js --git-merge</span> — the indexer
+    walks the referenced repos and overlays real merge commits on the dial as white dots.</div>
+  <div style="margin-top:8px"><b>Moon phase</b> is computed locally from session timestamps (synodic month = 29.530588853 days,
+    reference new moon 2000-01-06 18:14 UTC). Pure math, no API, no network call — same privacy posture as the rest of this app.</div>
+  <div style="margin-top:8px"><b>Weather</b> requires opt-in via <span class="mono">node scope.js --weather &lt;lat,lon&gt;</span>;
+    the indexer fetches from <a href="https://open-meteo.com" style="color:#9fb0ff" target="_blank" rel="noreferrer">Open-Meteo</a>
+    (free, no key, no tracking) and bakes the per-day result into <span class="mono">scope_data.js</span>. The browser still
+    makes zero network calls — the CSP at the edge enforces that.</div>`;
+
+document.getElementById('eyebrow').textContent =
+  `Archetype · cycles · ${items.length} session(s) · ${stageCounts.merged||0} merged · ${stageCounts.shipped||0} shipped · ${stageCounts.committed||0} committed${realMerges?` · ${realMerges} git-scan merges`:''}`;
+</script>
+</body>
+</html>

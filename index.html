@@ -97,9 +97,10 @@
     <span class="sl">Dashboards</span>
     <a href="sessions.html">chat archive</a>
     <a href="flow.html">flow &amp; ship</a>
+    <a href="cycles.html">moon &amp; merges <i>new</i></a>
   </nav>
-  <div class="suitehint">Chat archive &amp; flow run from any uploaded sessions. The braid, cognition &amp; clock are
-    <i>git-based</i> — populated by <span class="mono">node scope.js</span> on your own repos.</div>
+  <div class="suitehint">Chat archive, flow &amp; cycles run from any uploaded sessions. Real merge tracking &amp;
+    weather are <i>git-based</i> — populated by <span class="mono">node scope.js --git-merge --weather BSOTA</span>.</div>
 
   <footer>Open source · runs offline · <a href="#" id="where">where are my session files?</a></footer>
 </div>
@@ -186,6 +187,7 @@ $("go").onclick=()=>{
   try{
     sessionStorage.setItem('ARCHE_SESSIONS', JSON.stringify({SESSIONS:data.SESSIONS,SMETA:data.SMETA}));
     sessionStorage.setItem('ARCHE_TURNS', JSON.stringify(data.TURNS));
+    sessionStorage.setItem('ARCHE_CYCLES', JSON.stringify(data.CYCLES));
   }catch(e){ $("status").textContent="Too much data for this tab's storage — try fewer/smaller files. ("+e.name+")"; return; }
   location.href="sessions.html";
 };

@@ -9,6 +9,26 @@
   const SHELL = new Set(["Bash","shell","local_shell","run_terminal_cmd","exec","exec_command","container.exec"]);
   const SCOLOR = {synth:"#ff7ab6",gepa:"#ffb000",libero:"#00e0c6",rust:"#ff5d4d",ledger:"#7b6cff",core:"#4d9fff",proof:"#54e07a",infra:"#8a93a6",chat:"#9aa3b2"};
   const TIERCOLOR = {shipped:"#54e07a",built:"#ffb000",explored:"#6f7a8c"};
+  // Stage = farthest the session crossed the ship funnel. Merged wins over shipped wins over committed.
+  const STAGECOLOR = {merged:"#7b6cff",shipped:"#54e07a",committed:"#00e0c6",built:"#ffb000",explored:"#6f7a8c"};
+
+  // ---- moon phase (pure math, no network) ----
+  // Synodic month = 29.530588853 days. Reference new moon: 2000-01-06 18:14 UTC (NASA).
+  const SYNODIC = 29.530588853;
+  const MOON_REF = Date.UTC(2000,0,6,18,14);
+  const PHASE_NAMES = ["New Moon","Waxing Crescent","First Quarter","Waxing Gibbous","Full Moon","Waning Gibbous","Last Quarter","Waning Crescent"];
+  const PHASE_EMOJI = ["🌑","🌒","🌓","🌔","🌕","🌖","🌗","🌘"];
+  function moonPhase(when){
+    const t = (typeof when==="string") ? Date.parse(when) : (when && when.getTime ? when.getTime() : +when);
+    if(!isFinite(t)) return null;
+    const days = (t - MOON_REF) / 86400000;
+    const age = ((days % SYNODIC) + SYNODIC) % SYNODIC;       // 0..29.53 days
+    const phase = age / SYNODIC;                                // 0..1
+    // 8-way bucket centered on cardinal points (each bucket ~3.69 days wide)
+    const idx = Math.floor(((phase + 1/16) % 1) * 8);
+    const illum = 0.5 * (1 - Math.cos(2*Math.PI*phase));        // 0..1
+    return { phase, age:+age.toFixed(2), idx, name:PHASE_NAMES[idx], emoji:PHASE_EMOJI[idx], illum:+illum.toFixed(3) };
+  }
 
   function strand(s){ s=(s||"").toLowerCase();
     const m=re=>re.test(s);
@@ -17,7 +37,20 @@
     if(m(/htn|ledger|fork|trajectory|sim\b|plan/))return"ledger"; if(m(/eval|test|crap|complexity|spec|contract|grader/))return"proof";
     if(m(/core|storage|boundary|world|broker|rbac|runtime|service|audit|api/))return"core"; return"infra"; }
 
-  function gitCommitCmd(cmd){ return /git\s+commit|git\s+push|gh\s+pr\s+create|jj\s+(commit|describe)/.test(String(cmd||"")); }
+  // Each shell sub-command is classified independently; we keep the *farthest* stage reached.
+  // Stage rank: merge > pr > push > commit. A command like "git commit && git push" → push.
+  const GIT_MERGE = /(?:^|\s)(?:gh\s+pr\s+merge|git\s+merge(?!\s+(?:--abort|--continue|--quit|base|--squash\s+--no-commit)))/;
+  const GIT_PR    = /(?:^|\s)(?:gh\s+pr\s+create|gh\s+pr\s+ready)/;
+  const GIT_PUSH  = /(?:^|\s)(?:git\s+push|jj\s+git\s+push)(?!\w)/;
+  const GIT_COMM  = /(?:^|\s)(?:git\s+commit|jj\s+(?:commit|describe))(?!\w)/;
+  function classifyGit(cmd){
+    const c = String(cmd||"");
+    if(GIT_MERGE.test(c)) return "gitmerge";
+    if(GIT_PR.test(c))    return "gitpr";
+    if(GIT_PUSH.test(c))  return "gitpush";
+    if(GIT_COMM.test(c))  return "gitcommit";
+    return null;
+  }
   function catTool(name, input){
     name = name||"";
     const i = (input && typeof input==="object") ? input : {};
@@ -29,12 +62,13 @@
     if(EDIT.has(name)) cat="edit";
     else if(LOOK.has(name)) cat="look";
     else if(SHELL.has(name)){                              // shell tool: classify by the command
-      if(gitCommitCmd(cmd)) cat="gitcommit";
+      const g = classifyGit(cmd);
+      if(g) cat = g;
       else if(/apply_patch|sed -i|(^|\s)tee\s|>\s*\S+\.[A-Za-z0-9]/.test(cmd)) cat="edit"; // file writes
       else cat="bash";
     }
-    // Codex / MCP tool names
-    if(name==="_create_pull_request") cat="gitcommit";
+    // Codex / MCP tool names — PR creation is the same stage as `gh pr create`
+    if(name==="_create_pull_request") cat="gitpr";
     else if(/^_fetch|^_search|list_mcp|update_plan/.test(name)) cat="look";
     return {n:name||cat, b:brief, cat};
   }
@@ -163,18 +197,36 @@
     const sessions = norm.map((s,idx)=>{
       const ts = s.turns.map(t=>t.ts).filter(Boolean).sort();
       const start = ts[0]||null, end = ts[ts.length-1]||null;
-      let edit=0,look=0,bash=0,gitc=0,think=0,nu=0,na=0;
+      let edit=0,look=0,bash=0,gitc=0,gitp=0,gitpr=0,gitm=0,think=0,nu=0,na=0;
       for(const t of s.turns){ if(t.role==="user")nu++; else na++; think+=t.nthink||0;
-        for(const x of (t.tools||[])){ if(x.cat==="edit")edit++; else if(x.cat==="look")look++; else if(x.cat==="bash")bash++; else if(x.cat==="gitcommit"){bash++;gitc++;} } }
-      // shipped = committed/pushed; built = substantial work that never shipped; explored = light/read-only
-      const tier = gitc>0 ? "shipped" : ((edit>=5 || (edit+bash)>=12) ? "built" : "explored");
+        for(const x of (t.tools||[])){
+          if(x.cat==="edit")edit++;
+          else if(x.cat==="look")look++;
+          else if(x.cat==="bash")bash++;
+          else if(x.cat==="gitcommit"){bash++;gitc++;}
+          else if(x.cat==="gitpush"){bash++;gitp++;}
+          else if(x.cat==="gitpr"){bash++;gitpr++;}
+          else if(x.cat==="gitmerge"){bash++;gitm++;}
+        }
+      }
+      // Stage = farthest the session crossed the ship funnel.
+      // merged > shipped (pushed/PR) > committed (local only) > built > explored
+      const stage = gitm>0 ? "merged"
+                  : (gitp>0||gitpr>0) ? "shipped"
+                  : gitc>0 ? "committed"
+                  : (edit>=5 || (edit+bash)>=12) ? "built"
+                  : "explored";
+      // Legacy tier preserved for flow.html backward compat (shipped == any git-commit-or-later).
+      const tier = (gitc+gitp+gitpr+gitm)>0 ? "shipped" : (stage==="built" ? "built" : "explored");
       const k = s.project||s.title ? strand((s.project||"")+" "+(s.title||"")) : "chat";
       const dur = (start&&end)? Math.round((new Date(end)-new Date(start))/60000):0;
       const sh = start? new Date(start):null;
+      const moon = start ? moonPhase(start) : null;
       return {raw:s, source:s.source, id:(s.id||(s.source[0]+idx)), short:(s.id||String(idx)).slice(0,8),
         ws:s.source, branch:s.project||"", start, end, dur, nu, na,
-        title:s.title||"(untitled)", k, color:SCOLOR[k]||SCOLOR.infra, tier, tierColor:TIERCOLOR[tier],
-        edit, look, bash, gitc, think,
+        title:s.title||"(untitled)", k, color:SCOLOR[k]||SCOLOR.infra,
+        tier, tierColor:TIERCOLOR[tier], stage, stageColor:STAGECOLOR[stage],
+        edit, look, bash, gitc, gitp, gitpr, gitm, think, moon,
         startH: sh? +(sh.getHours()+sh.getMinutes()/60).toFixed(2):null,
         turns:s.turns.map(t=>t.role==="user"?{role:"user",ts:t.ts,text:t.text}
           :{role:"assistant",ts:t.ts,text:t.text,tools:t.tools,nthink:t.nthink,think:t.think}),
@@ -183,7 +235,8 @@
 
     // SESSIONS / SMETA (sessions.html)
     const SESSIONS = sessions.map(s=>({id:s.id,short:s.short,ws:s.ws,branch:s.branch,start:s.start,end:s.end,
-      dur:s.dur,nu:s.nu,na:s.na,title:s.title,k:s.k,color:s.color,turns:s.turns,commits:s.commits}));
+      dur:s.dur,nu:s.nu,na:s.na,title:s.title,k:s.k,color:s.color,stage:s.stage,stageColor:s.stageColor,
+      gitc:s.gitc,gitp:s.gitp,gitpr:s.gitpr,gitm:s.gitm,moon:s.moon,turns:s.turns,commits:s.commits}));
     const starts=sessions.map(s=>s.start).filter(Boolean).sort();
     const SMETA={n:SESSIONS.length,turns:SESSIONS.reduce((a,s)=>a+s.turns.length,0),
       from:(starts[0]||"").slice(0,10),to:(starts[starts.length-1]||"").slice(0,10),
@@ -208,8 +261,30 @@
         startH:s.startH,start:s.start,turns:s.turns.length,edit:s.edit,look:s.look,bash:s.bash,gitc:s.gitc,think:s.think,dur:s.dur,title:s.title}))};
 
     const hasTools = sessions.some(s=>s.edit||s.bash||s.gitc);
-    return {SESSIONS,SMETA,TURNS,hasTools};
+
+    // CYCLES (cycles.html) — sessions grouped by moon phase, with stage funnel + 60-day timeline.
+    // Browser path: MERGES/WEATHER stay empty unless scope.js (--git-merge / --weather) baked them in.
+    const phases = Array.from({length:8},(_,i)=>({i,name:PHASE_NAMES[i],emoji:PHASE_EMOJI[i],
+      sessions:0,merged:0,shipped:0,committed:0,built:0,explored:0,turns:0,edits:0}));
+    const items = [];
+    for(const s of sessions){ if(!s.moon) continue;
+      const p = phases[s.moon.idx];
+      p.sessions++; p[s.stage]++; p.turns += s.turns.length; p.edits += s.edit;
+      items.push({sid:s.short, ws:s.ws, branch:s.branch, start:s.start, stage:s.stage,
+        stageColor:s.stageColor, title:s.title, turns:s.turns.length, edit:s.edit, bash:s.bash,
+        gitc:s.gitc, gitp:s.gitp, gitpr:s.gitpr, gitm:s.gitm, moon:s.moon});
+    }
+    items.sort((a,b)=>(b.start||"").localeCompare(a.start||""));
+    const stageCounts = {merged:0,shipped:0,committed:0,built:0,explored:0};
+    for(const s of sessions) stageCounts[s.stage]++;
+    // Dominant phase: the bucket with the highest count of any-merged/shipped/committed (i.e. the "did something" buckets).
+    const ranked = phases.map(p=>({...p, did:p.merged+p.shipped+p.committed})).sort((a,b)=>b.did-a.did);
+    const dominant = ranked[0] && ranked[0].did>0 ? ranked[0] : null;
+    const CYCLES = { phases, items, stageCounts, dominant,
+      meta:{ n:sessions.length, tz:TZ_NOTE, latestStart: starts[starts.length-1]||null } };
+
+    return {SESSIONS,SMETA,TURNS,CYCLES,hasTools};
   }
 
-  global.SessionParsers = { detectAndParse, buildAll };
+  global.SessionParsers = { detectAndParse, buildAll, moonPhase };
 })(window);

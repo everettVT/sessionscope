@@ -18,15 +18,16 @@
 |---|---|
 | **Chat Archive** | Every session as a browsable thread — your prompts, agent replies, tool calls, thinking blocks |
 | **Flow & Ship** | A 24h radial clock of your turn activity, split by outcome: **shipped** (ran `git commit`), **built** (heavy edits, no commit), **explored** (read-only) |
+| **Moon & Merges** | A lunar dial of your work plotted by moon phase. Splits the funnel deeper than flow/ship: **merged** (ran `gh pr merge` / `git merge`) → **shipped** (`git push` / `gh pr create`) → **committed** (`git commit` only) → built → explored. Optionally overlays real merge commits from `git log` and weather from Open-Meteo. |
 
-The cut that matters: **what separates a shipping session from one that doesn't isn't thinking — it's how far you cross into execution.** The funnel is look → edit → commit.
+The cut that matters: **what separates a shipping session from one that doesn't isn't thinking — it's how far you cross into execution.** The funnel is look → edit → commit → push → merge.
 
 ## Supported formats
 
 | Format | Where to find it | Capability |
 |---|---|---|
-| **Claude Code** | `~/.claude/projects/<project>/*.jsonl` | sessions + flow/ship |
-| **Codex CLI** | `~/.codex/sessions/**/rollout-*.jsonl` | sessions + flow/ship |
+| **Claude Code** | `~/.claude/projects/<project>/*.jsonl` | sessions + flow/ship + cycles |
+| **Codex CLI** | `~/.codex/sessions/**/rollout-*.jsonl` | sessions + flow/ship + cycles |
 | **ChatGPT export** | Settings → Data controls → Export → `conversations.json` | sessions + activity |
 | **Anthropic export** | claude.ai → Settings → Export data → `conversations.json` | sessions + activity |
 
@@ -54,6 +55,19 @@ node scope.js
 ```
 
 That walks `~/.claude/projects`, `~/.codex/sessions`, and `~/Downloads`, parses everything with the same `parsers.js` the web app uses, writes `scope_data.js`, and opens the dashboards with your data preloaded.
+
+Want real merge truth and weather on the **Moon & Merges** page?
+
+```bash
+# scan the current repo (or pass extra --repo paths) for merge commits on main:
+node scope.js --git-merge --repo ~/code/foo --repo ~/code/bar
+
+# fetch weather for a place (geocoded via Open-Meteo, no API key) and bake it in:
+node scope.js --weather "Bogota"          # or pass coords:  --weather 4.71,-74.07
+node scope.js --weather Bogota --location BSOTA
+```
+
+`--git-merge` is local-only — it runs `git log` on your own repos. `--weather` is the **one** opt-in network call; data is fetched server-side by Node and baked into `scope_data.js`. The browser still makes zero outbound calls.
 
 ### 3. Run the static site locally
 ```bash
@@ -86,10 +100,11 @@ npx wrangler pages deploy . --project-name sessionscope
 
 ```
 index.html       privacy modal · folder scanner · format detection
-parsers.js       one normalizer + four adapters (Claude / Codex / ChatGPT / Anthropic)
+parsers.js       one normalizer + four adapters + moon-phase math (synodic, no API)
 sessions.html    chat archive: time rail · session list · thread view
 flow.html        24h radial turn clock · ship/build/explore tier cards
-scope.js         local Node indexer (reads standard hidden dirs, reuses parsers.js)
+cycles.html     lunar dial · merge/ship/commit funnel · per-phase cards · optional weather
+scope.js         local Node indexer · optional --git-merge (local) + --weather (Open-Meteo)
 _headers         Cloudflare edge headers — CSP enforces no-network at the edge
 ```
 

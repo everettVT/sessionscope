@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Session Archive — Archetype / sun-valley</title>
+<style>
+  :root{--bg:#06080d;--ink:#e8edf6;--dim:#8a93a6;--line:#18202e;--panel:#0b0f17}
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);overflow:hidden;
+    font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  .mono{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace}
+  #app{display:grid;grid-template-rows:auto auto 1fr;height:100%}
+
+  header{padding:18px 26px 8px}
+  header .eyebrow{font-family:ui-monospace,Menlo,monospace;font-size:10.5px;letter-spacing:.3em;text-transform:uppercase;color:var(--dim)}
+  header h1{margin:.25em 0 .1em;font-size:26px;font-weight:650;letter-spacing:-.01em}
+  header h1 b{background:linear-gradient(90deg,#7b6cff,#00e0c6);-webkit-background-clip:text;background-clip:text;color:transparent}
+  header .links{position:absolute;right:26px;top:20px;font-size:11.5px}
+  header .links a{color:#9fb0ff;text-decoration:none;border-bottom:1px solid rgba(159,176,255,.3);margin-left:14px}
+
+  /* time rail */
+  #rail{position:relative;height:64px;margin:4px 26px 0;border-bottom:1px solid var(--line)}
+  #rail .tick{position:absolute;bottom:0;font-family:ui-monospace,Menlo,monospace;font-size:9px;color:var(--dim);transform:translateX(-50%)}
+  #rail .sdot{position:absolute;border-radius:50%;cursor:pointer;transform:translate(-50%,-50%);
+    box-shadow:0 0 0 0 rgba(255,255,255,0);transition:box-shadow .12s,transform .12s}
+  #rail .sdot:hover{transform:translate(-50%,-50%) scale(1.25)}
+  #rail .sdot.active{box-shadow:0 0 0 2px #fff, 0 0 16px currentColor}
+
+  .main{display:grid;grid-template-columns:330px 1fr;min-height:0}
+  /* list */
+  #list{border-right:1px solid var(--line);overflow:auto;padding:12px}
+  #search{width:100%;background:var(--panel);border:1px solid var(--line);border-radius:9px;color:var(--ink);
+    padding:8px 11px;font-size:12.5px;margin-bottom:10px;outline:none}
+  #search:focus{border-color:#33415e}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:11px 12px;margin-bottom:9px;cursor:pointer;transition:border-color .12s,background .12s}
+  .card:hover{border-color:#2b3a55}
+  .card.active{border-color:rgba(124,108,255,.6);background:rgba(124,108,255,.07)}
+  .card .top{display:flex;align-items:center;gap:7px;margin-bottom:5px}
+  .card .dot{width:8px;height:8px;border-radius:50%;box-shadow:0 0 7px currentColor;flex:0 0 auto}
+  .card .ws{font-size:12.5px;font-weight:600}
+  .card .when{margin-left:auto;font-family:ui-monospace,Menlo,monospace;font-size:9.5px;color:var(--dim)}
+  .card .title{font-size:11.5px;color:#c3ccda;line-height:1.4;margin-bottom:6px;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .card .meta{display:flex;gap:9px;font-family:ui-monospace,Menlo,monospace;font-size:9.5px;color:var(--dim)}
+  .card .meta b{color:#aeb8c8;font-weight:600}
+  .card .br{font-family:ui-monospace,Menlo,monospace;font-size:9px;color:var(--dim);margin-top:5px;opacity:.8}
+
+  /* chat */
+  #chat{display:flex;flex-direction:column;min-height:0}
+  #chead{padding:13px 24px;border-bottom:1px solid var(--line)}
+  #chead .h1{display:flex;align-items:center;gap:9px}
+  #chead .dot{width:10px;height:10px;border-radius:50%;box-shadow:0 0 8px currentColor}
+  #chead .ws{font-size:15px;font-weight:650}
+  #chead .br{font-family:ui-monospace,Menlo,monospace;font-size:11px;color:var(--dim);margin-left:4px}
+  #chead .sub{font-family:ui-monospace,Menlo,monospace;font-size:10.5px;color:var(--dim);margin-top:5px}
+  #chead .commits{margin-top:8px;display:flex;flex-wrap:wrap;gap:6px}
+  #chead .cchip{font-family:ui-monospace,Menlo,monospace;font-size:10px;background:rgba(255,255,255,.05);
+    border:1px solid var(--line);border-radius:6px;padding:2px 7px;color:#aeb8c8;max-width:340px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #chead .cchip b{color:#54e07a}
+
+  #thread{overflow:auto;padding:20px 24px 60px;scroll-behavior:smooth}
+  .turn{display:flex;margin-bottom:16px}
+  .turn.user{justify-content:flex-end}
+  .bub{max-width:760px;border-radius:14px;padding:11px 14px;font-size:13.5px;line-height:1.5;white-space:pre-wrap;word-break:break-word}
+  .turn.user .bub{background:linear-gradient(180deg,#1a2b52,#152444);border:1px solid #27406e;border-top-right-radius:4px;color:#eaf0fb}
+  .turn.assistant .bub{background:var(--panel);border:1px solid var(--line);border-top-left-radius:4px}
+  .role{font-family:ui-monospace,Menlo,monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin-bottom:5px}
+  .turn.user .role{text-align:right;color:#7f9fe0}
+  .tools{margin-top:9px;display:flex;flex-direction:column;gap:4px}
+  .tool{font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#9fb0c8;background:rgba(255,255,255,.03);
+    border:1px solid var(--line);border-radius:6px;padding:3px 8px;display:flex;gap:8px}
+  .tool .tn{color:#ffd9a0;font-weight:600;flex:0 0 auto}
+  .tool .tb{color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  details.think{margin-top:9px}
+  details.think summary{font-family:ui-monospace,Menlo,monospace;font-size:10.5px;color:#9a86d8;cursor:pointer;list-style:none}
+  details.think summary::-webkit-details-marker{display:none}
+  details.think .tt{margin-top:6px;font-size:12px;color:#9fa6b8;font-style:italic;line-height:1.5;
+    border-left:2px solid #3a2f63;padding-left:10px;white-space:pre-wrap}
+  .ts{font-family:ui-monospace,Menlo,monospace;font-size:9px;color:var(--dim);margin-top:6px;opacity:.7}
+  .turn.user .ts{text-align:right}
+  #empty{color:var(--dim);padding:40px;text-align:center;font-size:13px}
+  ::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:#1b2433;border-radius:6px}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="eyebrow" id="eyebrow">Archetype · session archive</div>
+    <h1>Session <b>Archive</b></h1>
+    <div class="links">
+      <a href="index.html">↑ upload</a>
+      <a href="flow.html">→ flow &amp; ship</a>
+    </div>
+  </header>
+  <div id="rail"></div>
+  <div class="main">
+    <aside id="list"><input id="search" placeholder="filter sessions — branch, workspace, words…"></aside>
+    <section id="chat">
+      <div id="chead"></div>
+      <div id="thread"><div id="empty">select a session</div></div>
+    </section>
+  </div>
+</div>
+
+<script src="scope_data.js" onerror="void 0"></script>
+<script>
+(function(){ try{
+  var r=sessionStorage.getItem('ARCHE_SESSIONS');
+  if(r){ var o=JSON.parse(r); window.SESSIONS=o.SESSIONS; window.SMETA=o.SMETA; }
+  else if(window.SCOPE){ window.SESSIONS=window.SCOPE.SESSIONS; window.SMETA=window.SCOPE.SMETA; }
+  else { location.replace('index.html'); return; }
+}catch(e){ location.replace('index.html'); } })();
+</script>
+<script>
+const esc=s=>(s||"").replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
+const dShort=s=>{const d=new Date(s);return isNaN(d)?"":d.toLocaleString([],{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});};
+const fmtDur=m=> m>=1440?`${(m/1440).toFixed(0)}d`: m>=60?`${(m/60).toFixed(1)}h`:`${m}m`;
+let active=null;
+
+document.getElementById('eyebrow').textContent =
+  `Archetype · session archive · ${SMETA.n} sessions · ${SMETA.turns} turns · ${SMETA.from}→${SMETA.to} · ${SMETA.linked} linked to commits`;
+
+// ---- time rail ----
+function rail(){
+  const el=document.getElementById('rail'); const W=el.clientWidth||1000;
+  const ts=SESSIONS.map(s=>+new Date(s.start)).filter(n=>!isNaN(n));
+  const lo=Math.min(...ts), hi=Math.max(...ts), span=(hi-lo)||1;
+  const maxT=Math.max(...SESSIONS.map(s=>s.turns.length));
+  // month ticks
+  const d0=new Date(lo), d1=new Date(hi);
+  for(let y=d0.getFullYear(),mo=d0.getMonth(); new Date(y,mo)<=d1; mo++){ if(mo>11){mo=0;y++;}
+    const t=+new Date(y,mo); if(t<lo)continue;
+    const x=((t-lo)/span)*(W-40)+20;
+    const tk=document.createElement('div'); tk.className='tick'; tk.style.left=x+'px';
+    tk.textContent=new Date(y,mo).toLocaleString([], {month:'short'}); el.appendChild(tk);
+  }
+  SESSIONS.forEach((s,i)=>{
+    const t=+new Date(s.start); if(isNaN(t))return;
+    const x=((t-lo)/span)*(W-40)+20;
+    const r=5+Math.sqrt(s.turns.length/maxT)*13;
+    const lane=18 + (i%3)*12;
+    const d=document.createElement('div'); d.className='sdot'; d.dataset.i=i;
+    d.style.cssText+=`left:${x}px;top:${lane}px;width:${r*2}px;height:${r*2}px;background:${s.color};color:${s.color};opacity:.85`;
+    d.title=`${s.ws} · ${s.branch} · ${s.turns.length} turns`;
+    d.onclick=()=>select(i);
+    el.appendChild(d);
+  });
+}
+
+// ---- session list ----
+function listCards(filter=""){
+  const el=document.getElementById('list');
+  [...el.querySelectorAll('.card')].forEach(c=>c.remove());
+  const f=filter.toLowerCase();
+  SESSIONS.map((s,i)=>({s,i}))
+    .filter(({s})=>!f || (s.ws+s.branch+s.title+s.k).toLowerCase().includes(f))
+    .sort((a,b)=> (b.s.start||"").localeCompare(a.s.start||""))
+    .forEach(({s,i})=>{
+      const c=document.createElement('div'); c.className='card'+(active===i?' active':''); c.dataset.i=i;
+      c.innerHTML=`<div class="top"><span class="dot" style="background:${s.color};color:${s.color}"></span>
+        <span class="ws">${s.ws}</span><span class="when">${dShort(s.start)}</span></div>
+        <div class="title">${esc(s.title)}</div>
+        <div class="meta"><span class="mono" style="color:${s.color}">${s.k}</span>
+          <span>↳<b>${s.nu}</b></span><span>⚙<b>${s.na}</b></span>
+          <span>${fmtDur(s.dur)}</span><span>◆<b>${s.commits.length}</b></span></div>
+        <div class="br">${esc(s.branch)}</div>`;
+      c.onclick=()=>select(i);
+      el.appendChild(c);
+    });
+}
+
+// ---- chat view ----
+function select(i){
+  active=i; const s=SESSIONS[i];
+  document.querySelectorAll('.card').forEach(c=>c.classList.toggle('active', +c.dataset.i===i));
+  document.querySelectorAll('#rail .sdot').forEach(d=>d.classList.toggle('active', +d.dataset.i===i));
+  const head=document.getElementById('chead');
+  head.innerHTML=`<div class="h1"><span class="dot" style="background:${s.color};color:${s.color}"></span>
+    <span class="ws">${s.ws}</span><span class="br">${esc(s.branch)}</span></div>
+    <div class="sub">${dShort(s.start)} → ${dShort(s.end)} · ${fmtDur(s.dur)} · ${s.nu} prompts · ${s.na} agent turns · strand ${s.k}</div>
+    ${s.commits.length?`<div class="commits">`+s.commits.map(c=>
+      `<span class="cchip" title="${esc(c.s)}"><b>${c.h}</b> ${esc(c.s)}</span>`).join("")+`</div>`:``}`;
+  const th=document.getElementById('thread');
+  th.innerHTML = s.turns.map(t=>{
+    if(t.role==="user")
+      return `<div class="turn user"><div><div class="role">you</div>
+        <div class="bub">${esc(t.text)}</div><div class="ts">${dShort(t.ts)}</div></div></div>`;
+    const tools=(t.tools&&t.tools.length)?`<div class="tools">`+t.tools.map(x=>
+      `<div class="tool"><span class="tn">⚙ ${esc(x.n)}</span><span class="tb">${esc(x.b)}</span></div>`).join("")+`</div>`:``;
+    const think=t.nthink?`<details class="think"><summary>💭 ${t.nthink} thought${t.nthink>1?'s':''}</summary>
+      <div class="tt">${esc(t.think)}${t.think.length>=300?'…':''}</div></details>`:``;
+    return `<div class="turn assistant"><div style="max-width:760px"><div class="role">claude</div>
+      ${t.text?`<div class="bub">${esc(t.text)}</div>`:``}${tools}${think}
+      <div class="ts">${dShort(t.ts)}</div></div></div>`;
+  }).join("");
+  th.scrollTop=0;
+}
+
+document.getElementById('search').addEventListener('input', e=>listCards(e.target.value));
+rail(); listCards();
+// default: the richest work session
+select(SESSIONS.indexOf(SESSIONS.reduce((a,b)=>b.turns.length>a.turns.length?b:a)));
+window.addEventListener('resize', ()=>{document.getElementById('rail').innerHTML='';rail();});
+</script>
+</body>
+</html>

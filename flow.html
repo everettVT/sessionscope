@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Flow & Ship — Archetype / sun-valley</title>
+<style>
+  :root{--bg:#06080d;--ink:#e8edf6;--dim:#8a93a6;--line:#18202e}
+  *{box-sizing:border-box}
+  html,body{margin:0;min-height:100%;color:var(--ink);
+    background:radial-gradient(1100px 700px at 50% 24%,#0a0e16,#04060a 72%);
+    font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  .mono{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace}
+  .wrap{max-width:1000px;margin:0 auto;padding:28px 30px 50px}
+  .links{position:absolute;right:30px;top:24px;font-size:11.5px}
+  .links a{color:#9fb0ff;text-decoration:none;border-bottom:1px solid rgba(159,176,255,.3);margin-left:13px}
+  header .eyebrow{font-family:ui-monospace,Menlo,monospace;font-size:11px;letter-spacing:.32em;text-transform:uppercase;color:var(--dim)}
+  header h1{margin:.28em 0 .12em;font-size:32px;font-weight:650;letter-spacing:-.015em}
+  header h1 b{background:linear-gradient(90deg,#54e07a,#ffb000 60%,#6f7a8c);-webkit-background-clip:text;background-clip:text;color:transparent}
+  header .sub{color:var(--dim);font-size:13.5px;line-height:1.55;max-width:740px}
+  header .sub em{color:#c3ccda;font-style:normal}
+
+  .top{display:grid;grid-template-columns:430px 1fr;gap:22px;margin-top:16px;align-items:start}
+  .stagewrap{position:relative;display:flex;justify-content:center}
+  #center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;width:180px}
+  #center .big{font-family:ui-monospace,Menlo,monospace;font-size:34px;font-weight:650;letter-spacing:-.02em;
+    background:linear-gradient(90deg,#fff,#bfe9c9);-webkit-background-clip:text;background-clip:text;color:transparent}
+  #center .lab{font-size:11px;color:var(--dim);line-height:1.45;margin-top:3px}
+  .legend{display:flex;gap:14px;justify-content:center;margin-top:8px;font-size:11.5px;color:var(--dim)}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .legend i{width:10px;height:10px;border-radius:3px}
+
+  .cards{display:flex;flex-direction:column;gap:12px}
+  .card{background:rgba(10,14,21,.5);border:1px solid var(--line);border-radius:13px;padding:13px 15px}
+  .card .h{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+  .card .dot{width:10px;height:10px;border-radius:3px;box-shadow:0 0 8px currentColor}
+  .card .nm{font-size:13px;font-weight:650}
+  .card .tag{margin-left:auto;font-family:ui-monospace,Menlo,monospace;font-size:10px;color:var(--dim)}
+  .card .row{display:flex;gap:16px;font-family:ui-monospace,Menlo,monospace;font-size:11px;color:var(--dim);margin-bottom:9px}
+  .card .row b{color:#dfe6f0;font-weight:600;font-size:13px}
+  .mix{height:9px;border-radius:5px;overflow:hidden;display:flex;border:1px solid var(--line)}
+  .mix i{height:100%}
+  .mixkey{display:flex;gap:12px;margin-top:6px;font-size:10px;color:var(--dim)}
+  .mixkey span{display:inline-flex;align-items:center;gap:5px}.mixkey b{width:8px;height:8px;border-radius:2px;display:inline-block}
+
+  h2.sec{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--dim);font-weight:600;margin:26px 0 4px}
+  #strip{display:block;width:100%}
+  .foot{margin-top:18px;border-top:1px solid var(--line);padding-top:14px;font-size:12px;color:var(--dim);line-height:1.6;max-width:880px}
+  .foot b{color:#c3ccda;font-weight:600} .foot .warn{color:#ffd9a0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="links"><a href="index.html">↑ upload</a><a href="sessions.html">→ sessions</a></div>
+  <header>
+    <div class="eyebrow" id="eyebrow">Archetype · flow & ship</div>
+    <h1>Flow &amp; <b>Ship</b></h1>
+    <div class="sub">Turn activity grounds <em>what you were doing</em>; session outcome labels <em>whether it landed.</em>
+      Each session is graded by what it actually did — <b style="color:#54e07a">shipped</b> (ran git&nbsp;commit/push),
+      <b style="color:#ffb000">built</b> (heavy edits, never committed), or <b style="color:#6f7a8c">explored</b> (read-only).
+      The dial folds all turns onto 24h, local.</div>
+  </header>
+
+  <div class="top">
+    <div>
+      <div class="stagewrap">
+        <canvas id="clock" width="420" height="420"></canvas>
+        <div id="center"></div>
+      </div>
+      <div class="legend">
+        <span><i style="background:#54e07a"></i>shipped turns</span>
+        <span><i style="background:#ffb000"></i>built</span>
+        <span><i style="background:#6f7a8c"></i>explored</span>
+      </div>
+    </div>
+    <div class="cards" id="cards"></div>
+  </div>
+
+  <h2 class="sec">Every session, by time of day it started</h2>
+  <canvas id="strip" height="150"></canvas>
+
+  <div class="foot" id="foot"></div>
+</div>
+
+<script src="scope_data.js" onerror="void 0"></script>
+<script>
+(function(){ try{
+  var r=sessionStorage.getItem('ARCHE_TURNS');
+  if(r){ window.TURNS=JSON.parse(r); }
+  else if(window.SCOPE){ window.TURNS=window.SCOPE.TURNS; }
+  else { location.replace('index.html'); return; }
+}catch(e){ location.replace('index.html'); } })();
+</script>
+<script>
+const T=TURNS, H=T.hours, S=T.sessions;
+const TC={shipped:"#54e07a",built:"#ffb000",explored:"#6f7a8c"};
+const hexA=(hex,a)=>{const c=hex.replace('#','');return`rgba(${parseInt(c.slice(0,2),16)},${parseInt(c.slice(2,4),16)},${parseInt(c.slice(4,6),16)},${a})`};
+document.getElementById('eyebrow').textContent=
+  `Archetype · flow & ship · ${T.meta.nSessions} sessions · ${T.meta.nTurns} turns · ${T.meta.shipped} shipped / ${T.meta.notShipped} not · local UTC-7`;
+
+// ---------- radial turn clock ----------
+const cv=document.getElementById('clock'), x=cv.getContext('2d');
+const DPR=Math.min(2,devicePixelRatio||1);
+cv.width=420*DPR;cv.height=420*DPR;cv.style.width='420px';cv.style.height='420px';x.scale(DPR,DPR);
+const CX=210,CY=210,R0=66,ACT=120;
+const ang=h=>(-90+h*15)*Math.PI/180;
+const pt=(h,r)=>[CX+Math.cos(ang(h))*r,CY+Math.sin(ang(h))*r];
+const maxTot=Math.max(...H.map(r=>r.total),1);
+function clock(){
+  x.clearRect(0,0,420,420);
+  // base ring + hour ticks/labels
+  x.strokeStyle='rgba(255,255,255,.07)';x.beginPath();x.arc(CX,CY,R0,0,7);x.stroke();
+  for(let h=0;h<24;h++){
+    const out=R0+ACT+(h%6===0?8:3);
+    x.strokeStyle=h%6===0?'rgba(255,255,255,.12)':'rgba(255,255,255,.045)';
+    x.beginPath();x.moveTo(...pt(h,R0));x.lineTo(...pt(h,out));x.stroke();
+    if(h%3===0){const[lx,ly]=pt(h,R0+ACT+22);x.fillStyle='rgba(170,184,200,.7)';
+      x.font='600 11px ui-monospace,Menlo,monospace';x.textAlign='center';x.textBaseline='middle';
+      x.fillText(String(h).padStart(2,'0'),lx,ly);}
+  }
+  x.textBaseline='alphabetic';
+  // stacked radial bars per hour: shipped, built, explored
+  H.forEach(r=>{ if(!r.total) return;
+    let rad=R0;
+    [["shipped",r.shipped],["built",r.built],["explored",r.explored]].forEach(([k,v])=>{
+      if(!v) return; const len=(v/maxTot)*ACT;
+      const[bx,by]=pt(r.h,rad),[ex,ey]=pt(r.h,rad+len);
+      x.strokeStyle=hexA(TC[k],.85);x.lineWidth=9;x.lineCap='butt';
+      x.beginPath();x.moveTo(bx,by);x.lineTo(ex,ey);x.stroke();
+      rad+=len;
+    });
+  });
+  // peak-activity marker
+  const pk=H.reduce((a,b)=>b.total>a.total?b:a);
+  const[mx,my]=pt(pk.h,R0+ (pk.total/maxTot)*ACT +14);
+  x.fillStyle='rgba(190,233,201,.85)';x.font='600 9px ui-monospace,Menlo,monospace';x.textAlign='center';
+  x.fillText('peak',mx,my);
+}
+const shTurns=H.reduce((a,r)=>a+r.shipped,0), tot=H.reduce((a,r)=>a+r.total,0);
+document.getElementById('center').innerHTML=
+  `<div class="big">${Math.round(shTurns/tot*100)}%</div>
+   <div class="lab">of turns landed in a<br><b style="color:#54e07a">shipping</b> session<br>
+   <span style="opacity:.8">${T.meta.shipped}/${T.meta.nSessions} sessions</span></div>`;
+
+// ---------- tier cards ----------
+function cards(){
+  document.getElementById('cards').innerHTML=T.tiers.map(t=>{
+    const dur = t.medDur>2880? `${(t.medDur/1440).toFixed(0)}d*` : (t.medDur>=60?`${(t.medDur/60).toFixed(1)}h`:`${t.medDur}m`);
+    return `<div class="card">
+      <div class="h"><span class="dot" style="background:${t.color};color:${t.color}"></span>
+        <span class="nm" style="color:${t.color}">${t.tier}</span>
+        <span class="tag">${t.n} session${t.n>1?'s':''}</span></div>
+      <div class="row"><span><b>${t.turns}</b> turns</span><span><b>${t.commits}</b> commits</span>
+        <span>med <b>${dur}</b></span><span><b>${t.thinkPerTurn}</b> think/turn</span></div>
+      <div class="mix">
+        <i style="width:${t.pLook}%;background:#4d9fff" title="look"></i>
+        <i style="width:${t.pEdit}%;background:#ffb000" title="edit"></i>
+        <i style="width:${t.pBash}%;background:#54e07a" title="bash/run"></i></div>
+      <div class="mixkey"><span><b style="background:#4d9fff"></b>look ${t.pLook}%</span>
+        <span><b style="background:#ffb000"></b>edit ${t.pEdit}%</span>
+        <span><b style="background:#54e07a"></b>bash ${t.pBash}%</span></div>
+    </div>`;
+  }).join("");
+}
+
+// ---------- session strip (by start hour) ----------
+const sc=document.getElementById('strip'), sx=sc.getContext('2d');
+function strip(){
+  const W=sc.clientWidth||900,Hh=150; sc.width=W*DPR;sc.height=Hh*DPR;sx.setTransform(DPR,0,0,DPR,0,0);
+  sx.clearRect(0,0,W,Hh);
+  const L=20,R=20,T=8,B=22,pw=W-L-R,ph=Hh-T-B;
+  const X=h=>L+(h/24)*pw;
+  // night shading
+  sx.fillStyle='rgba(255,255,255,.02)';sx.fillRect(L,T,X(6)-L,ph);sx.fillRect(X(20),T,X(24)-X(20),ph);
+  sx.strokeStyle='rgba(255,255,255,.06)';sx.fillStyle='rgba(170,184,200,.6)';sx.font='9px ui-monospace,Menlo,monospace';sx.textAlign='center';
+  for(let h=0;h<=24;h+=3){sx.beginPath();sx.moveTo(X(h),T);sx.lineTo(X(h),T+ph);sx.stroke();sx.fillText(String(h).padStart(2,'0'),X(h),Hh-7);}
+  const maxT=Math.max(...S.map(s=>s.turns));
+  // lane packing to avoid overlap
+  const lanes=[];
+  S.filter(s=>s.startH!=null).sort((a,b)=>a.startH-b.startH).forEach(s=>{
+    const r=6+Math.sqrt(s.turns/maxT)*22, cx=X(s.startH);
+    let lane=0; while(lanes[lane]!=null && lanes[lane] > cx-r-26) lane++;
+    lanes[lane]=cx+r; const cy=T+18+lane*30;
+    sx.beginPath();sx.fillStyle=hexA(s.color,.85);sx.arc(cx,cy,r,0,7);sx.fill();
+    sx.strokeStyle=hexA(s.color,.5);sx.lineWidth=1;sx.stroke();
+    sx.fillStyle='rgba(232,237,246,.92)';sx.font='9px ui-monospace,Menlo,monospace';sx.textAlign='left';
+    sx.fillText(`${s.ws} ·${s.turns}t`, cx+r+5, cy+3);
+  });
+}
+
+function foot(){
+  const sh=T.tiers.find(t=>t.tier==='shipped')||{}, bu=T.tiers.find(t=>t.tier==='built')||{}, ex=T.tiers.find(t=>t.tier==='explored')||{};
+  document.getElementById('foot').innerHTML=
+   `<div><b>What separates a shipping session from one that doesn't isn't thinking</b> — think/turn is flat (~0.35–0.38)
+     across all three tiers. It's <b>how far you cross into execution.</b> Explored sessions are
+     <b style="color:#4d9fff">look</b>-heavy (${ex.pLook||0}%, read-only Q&amp;A). Built sessions are
+     <b style="color:#ffb000">edit</b>-heavy (${bu.pEdit||0}%) but never commit. Shipping sessions are
+     <b style="color:#54e07a">bash</b>-dominant (${sh.pBash||0}% — running tests, committing, pushing). The funnel is look → edit → commit.</div>
+   <div style="margin-top:8px">Two sessions sit at the cliff edge: <b>albany</b> (39 edits, 109 thoughts) and <b>this very session</b>
+     (40 edits, 0 commits) — deep work that never crossed the commit line. The dial also shows your agent work is an
+     <b>evening activity</b> (turns peak 20:00–01:00), unlike your hand-authored commits, which peak mid-afternoon.</div>
+   <div style="margin-top:8px" class="warn">⚠ Small N (11 sessions). <b>*</b> shipped median-duration is distorted by two sessions
+     resumed across many days; turn-count is the reliable size signal. Outcome is from each session's own actions, so a session
+     that edited then committed elsewhere could read as "built." Hours are local wall-clock.</div>`;
+}
+
+clock(); cards(); strip(); foot();
+addEventListener('resize', strip);
+</script>
+</body>
+</html>

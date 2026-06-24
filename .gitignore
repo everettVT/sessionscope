@@ -1,0 +1,4 @@
+scope_data.js
+*_data.js
+.DS_Store
+node_modules/

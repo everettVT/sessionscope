@@ -141,27 +141,27 @@
 
 <script src="scope_data.js" onerror="void 0"></script>
 <script src="parsers.js"></script>
+<script src="storage.js"></script>
 <script>
-(function(){
+(async () => {
   try{
-    var sr=sessionStorage.getItem('ARCHE_SESSIONS');
-    var cr=sessionStorage.getItem('ARCHE_CYCLES');
-    if(sr){
-      var o=JSON.parse(sr); window.SESSIONS=o.SESSIONS; window.SMETA=o.SMETA;
-      window.CYCLES = cr ? JSON.parse(cr) : null;
-      // MERGES/WEATHER never come via sessionStorage — only via scope_data.js. That's intentional.
-      window.MERGES = (window.SCOPE&&window.SCOPE.MERGES)||null;
-      window.WEATHER = (window.SCOPE&&window.SCOPE.WEATHER)||null;
+    const o = await SSStore.idbGet('ARCHE_SESSIONS');
+    if(o){
+      window.SESSIONS = o.SESSIONS; window.SMETA = o.SMETA;
+      window.CYCLES   = await SSStore.idbGet('ARCHE_CYCLES') || null;
+      // MERGES/WEATHER only ship via scope.js (intentional — the browser stays local).
+      window.MERGES   = (window.SCOPE && window.SCOPE.MERGES) || null;
+      window.WEATHER  = (window.SCOPE && window.SCOPE.WEATHER) || null;
     } else if(window.SCOPE){
-      window.SESSIONS=window.SCOPE.SESSIONS; window.SMETA=window.SCOPE.SMETA;
-      window.CYCLES=window.SCOPE.CYCLES||null;
-      window.MERGES=window.SCOPE.MERGES||null;
-      window.WEATHER=window.SCOPE.WEATHER||null;
+      window.SESSIONS = window.SCOPE.SESSIONS; window.SMETA = window.SCOPE.SMETA;
+      window.CYCLES   = window.SCOPE.CYCLES || null;
+      window.MERGES   = window.SCOPE.MERGES || null;
+      window.WEATHER  = window.SCOPE.WEATHER || null;
     } else { location.replace('index.html'); return; }
-  }catch(e){ location.replace('index.html'); }
+  }catch(e){ console.error(e); location.replace('index.html'); return; }
+  __cyclesMain();
 })();
-</script>
-<script>
+function __cyclesMain(){
 const PHASE_NAMES=["New Moon","Waxing Crescent","First Quarter","Waxing Gibbous","Full Moon","Waning Gibbous","Last Quarter","Waning Crescent"];
 const PHASE_EMOJI=["🌑","🌒","🌓","🌔","🌕","🌖","🌗","🌘"];
 const STAGECOLOR={merged:"#7b6cff",shipped:"#54e07a",committed:"#00e0c6",built:"#ffb000",explored:"#6f7a8c"};
@@ -384,6 +384,7 @@ $("foot").innerHTML = `
 
 document.getElementById('eyebrow').textContent =
   `Archetype · cycles · ${items.length} session(s) · ${stageCounts.merged||0} merged · ${stageCounts.shipped||0} shipped · ${stageCounts.committed||0} committed${realMerges?` · ${realMerges} git-scan merges`:''}`;
+}  // end __cyclesMain
 </script>
 </body>
 </html>

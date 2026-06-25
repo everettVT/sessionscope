@@ -105,15 +105,18 @@
 </div>
 
 <script src="scope_data.js" onerror="void 0"></script>
+<script src="storage.js"></script>
 <script>
-(function(){ try{
-  var r=sessionStorage.getItem('ARCHE_SESSIONS');
-  if(r){ var o=JSON.parse(r); window.SESSIONS=o.SESSIONS; window.SMETA=o.SMETA; }
-  else if(window.SCOPE){ window.SESSIONS=window.SCOPE.SESSIONS; window.SMETA=window.SCOPE.SMETA; }
-  else { location.replace('index.html'); return; }
-}catch(e){ location.replace('index.html'); } })();
-</script>
-<script>
+(async () => {
+  try{
+    const o = await SSStore.idbGet('ARCHE_SESSIONS');
+    if(o){ window.SESSIONS = o.SESSIONS; window.SMETA = o.SMETA; }
+    else if(window.SCOPE){ window.SESSIONS = window.SCOPE.SESSIONS; window.SMETA = window.SCOPE.SMETA; }
+    else { location.replace('index.html'); return; }
+  }catch(e){ console.error(e); location.replace('index.html'); return; }
+  __sessionsMain();
+})();
+function __sessionsMain(){
 const esc=s=>(s||"").replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
 const dShort=s=>{const d=new Date(s);return isNaN(d)?"":d.toLocaleString([],{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});};
 const fmtDur=m=> m>=1440?`${(m/1440).toFixed(0)}d`: m>=60?`${(m/60).toFixed(1)}h`:`${m}m`;
@@ -203,6 +206,7 @@ rail(); listCards();
 // default: the richest work session
 select(SESSIONS.indexOf(SESSIONS.reduce((a,b)=>b.turns.length>a.turns.length?b:a)));
 window.addEventListener('resize', ()=>{document.getElementById('rail').innerHTML='';rail();});
+}  // end __sessionsMain
 </script>
 </body>
 </html>

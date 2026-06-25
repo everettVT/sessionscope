@@ -65,8 +65,8 @@ for(const r of roots){ if(fs.existsSync(r.dir)){ const before=files.length; walk
 const norm = []; const bySource = {};
 let scanned = 0;
 for(const f of files){
-  let st; try{ st = fs.statSync(f); }catch(_){ continue; }
-  if(st.size > 80*1024*1024) continue;                 // skip >80MB
+  // No file-size cap — user wants no limits. Parse anything that's valid; OOMs on the parser side
+  // would be the only failure mode, and at that point you'd want to know.
   let txt; try{ txt = fs.readFileSync(f, "utf8"); }catch(_){ continue; }
   scanned++;
   let r=null; try{ r = P.detectAndParse(f, txt); }catch(_){ r=null; }

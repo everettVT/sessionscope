@@ -83,15 +83,18 @@
 </div>
 
 <script src="scope_data.js" onerror="void 0"></script>
+<script src="storage.js"></script>
 <script>
-(function(){ try{
-  var r=sessionStorage.getItem('ARCHE_TURNS');
-  if(r){ window.TURNS=JSON.parse(r); }
-  else if(window.SCOPE){ window.TURNS=window.SCOPE.TURNS; }
-  else { location.replace('index.html'); return; }
-}catch(e){ location.replace('index.html'); } })();
-</script>
-<script>
+(async () => {
+  try{
+    const t = await SSStore.idbGet('ARCHE_TURNS');
+    if(t){ window.TURNS = t; }
+    else if(window.SCOPE){ window.TURNS = window.SCOPE.TURNS; }
+    else { location.replace('index.html'); return; }
+  }catch(e){ console.error(e); location.replace('index.html'); return; }
+  __flowMain();
+})();
+function __flowMain(){
 const T=TURNS, H=T.hours, S=T.sessions;
 const TC={shipped:"#54e07a",built:"#ffb000",explored:"#6f7a8c"};
 const hexA=(hex,a)=>{const c=hex.replace('#','');return`rgba(${parseInt(c.slice(0,2),16)},${parseInt(c.slice(2,4),16)},${parseInt(c.slice(4,6),16)},${a})`};
@@ -206,6 +209,7 @@ function foot(){
 
 clock(); cards(); strip(); foot();
 addEventListener('resize', strip);
+}  // end __flowMain
 </script>
 </body>
 </html>
